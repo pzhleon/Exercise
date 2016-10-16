@@ -1,0 +1,49 @@
+package com.leon.exercise.account.email;
+
+import static org.junit.Assert.assertEquals;
+
+import javax.mail.Message;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+import com.icegreen.greenmail.util.GreenMail;
+import com.icegreen.greenmail.util.GreenMailUtil;
+import com.icegreen.greenmail.util.ServerSetup;
+
+/**
+ * Created by Leon on 2016/10/17.
+ */
+public class AccountEmailServiceTest {
+  private GreenMail greenMail;
+
+  @Before
+  public void startMailServer() throws Exception {
+    greenMail = new GreenMail(ServerSetup.SMTP);
+    greenMail.setUser("test@xujava.iteye.com", "123456");
+    greenMail.start();
+  }
+
+  @Test
+  public void testSendMail() throws Exception {
+    ApplicationContext ctx = new ClassPathXmlApplicationContext("account-email.xml");
+    AccountEmailService accountEmailService =
+        (AccountEmailService) ctx.getBean("accountEmailService");
+    String subject = "Text Subject";
+    String htmlText = "<h3>Test</h3>";
+    accountEmailService.sendMail("test2@xujava.iteye.com", subject, htmlText);
+    greenMail.waitForIncomingEmail(2000, 1);
+    Message[] msgs = greenMail.getReceivedMessages();
+    assertEquals(1, msgs.length);
+    assertEquals(subject, msgs[0].getSubject());
+    assertEquals(htmlText, GreenMailUtil.getBody(msgs[0]).trim());
+  }
+
+  @After
+  public void stopMainServer() throws Exception {
+    greenMail.stop();
+  }
+}
